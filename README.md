@@ -17,4 +17,4 @@ Beautiful LED Matrix to display the weather! Powered by the Raspberry Pi and Ada
   4. Run weatherstation.py with "sudo python weatherstation.py &"
 
 ### Author
-* **Joe Samela** - *Initial work* - [ForYourBrain.net](https://josephsamela.github.io/)
+* **Joe Samela** - *Initial work* - [josephsamela.github.io](https://josephsamela.github.io/)
