@@ -16,6 +16,7 @@ Beautiful LED Matrix to display the weather! Powered by the Raspberry Pi and Ada
   3. Install required Python packages
   ```
   sudo apt-get install python-dev python-imaging
+  sudo pip install schedule
   ```
   3. Edit weatherstation.py and enter your location and API ID.
   4. Run weatherstation.py with "sudo python weatherstation.py &"
