@@ -14,9 +14,9 @@ Beautiful LED Matrix to display the weather! Powered by the Raspberry Pi and Ada
   1. Sign up for API at http://openweathermap.org/api
   2. Clone this repo to Pi, navigate to directoy.
   3. Install required Python packages
-  '''
+  ```
   sudo apt-get install python-dev python-imaging
-  '''
+  ```
   3. Edit weatherstation.py and enter your location and API ID.
   4. Run weatherstation.py with "sudo python weatherstation.py &"
 
