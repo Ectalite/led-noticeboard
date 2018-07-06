@@ -12,7 +12,7 @@ Beautiful LED Matrix to display the weather! Powered by the Raspberry Pi and Ada
 
 ### Software
   1. Sign up for API key at http://openweathermap.org/api
-  2. Clone this repo to RPi and navigate to directory.
+  2. Clone this repo to RPi and navigate to the directory.
   3. Install required Python packages
   ```
   sudo apt-get install python-dev python-imaging
