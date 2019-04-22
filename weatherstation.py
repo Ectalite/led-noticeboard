@@ -6,9 +6,9 @@ import json
 import requests
 from rgbmatrix import Adafruit_RGBmatrix
 
-#Enter Location code found at: http://openweathermap.org/help/city_list.txt
-location = '4954380' #Waltham, MA
-#location = '4835654' #Hamden, CT
+#Enter Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
+location = '2750065' #Nijkerk, NL
+#location = '4954380' #Waltham, MA
 
 #Include app id generated when you make you account at: http://openweathermap.org/api
 appid = '26d71701f80249205ff46efa3570822f'
