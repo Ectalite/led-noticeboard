@@ -1,5 +1,5 @@
-import Image
-import ImageDraw
+from PIL import Image
+from PIL import ImageDraw
 import schedule
 import time
 import json
@@ -16,9 +16,11 @@ appid = '26d71701f80249205ff46efa3570822f'
 # Configuration for the matrix
 options = RGBMatrixOptions()
 options.rows = 32
+options.cols = 64
 options.chain_length = 1
 options.parallel = 1
 options.hardware_mapping = 'adafruit-hat'
+options.panel_type = 'FM6126A'
 matrix = RGBMatrix(options = options)
 
 def drawimage(path, x, y):
