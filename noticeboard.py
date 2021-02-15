@@ -7,14 +7,20 @@ import json
 import requests
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 import datetime
+import pickle
+import os.path
+from googleapiclient.discovery import build
 
 # Weather settings held in file weather-data.json
 # Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
 # Include app id generated when you make you account at: http://openweathermap.org/api
-with open('weather-data.json') as json_file:
-    data = json.load(json_file)
-    location = data['location']
-    appid = data ['appid']
+with open('config.json') as json_file:
+    config = json.load(json_file)
+    weather_config = config['weather']
+    location = weather_config['location']
+    appid = weather_config['appid']
+    calendar_config = config['calendar']
+    calendarId = calendar_config['calendarId']
 
 # Configuration for the matrix
 options = RGBMatrixOptions()
@@ -25,8 +31,13 @@ options.parallel = 1
 options.hardware_mapping = 'adafruit-hat'
 options.panel_type = 'FM6126A'
 matrix = RGBMatrix(options = options)
+
 font = graphics.Font()
 font.LoadFont('fonts/5x7.bdf')
+
+smallFont = graphics.Font()
+smallFont.LoadFont("fonts/tom-thumb.bdf")
+        
 
 def drawimage(path, x, y):
     image = Image.open(path).convert('RGB')
@@ -121,10 +132,65 @@ def timeJob():
 
     #except Exception as e:
      #   print(e)
+     
+
+def calendarJob():
+    try:
+        
+        # If modifying these scopes, delete the file token.pickle.
+        #SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+
+        creds = None
+        # The file token.pickle stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            print('invalid creds. run the quickstart')
+
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Call the Calendar API
+        now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        toDate = (datetime.date.today() + datetime.timedelta(days=1)).isoformat() + 'T00:00:00Z'
+        print('Getting the upcoming events')
+        print('From: '+now)
+        print('To: '+toDate)
+        events_result = service.events().list(calendarId=calendarId,
+                                            timeMin=now, timeMax=toDate, maxResults=3, singleEvents=True,
+                                            orderBy='startTime').execute()
+        events = events_result.get('items', [])
+
+        if not events:
+            print('No upcoming events found.')
+
+        # Clear previous list
+        image = Image.new('RGB', (64, 17))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 63, 16), fill=(0, 0, 0), outline=(0, 0, 0))
+        matrix.SetImage(image, 0, 15)
+
+        color = graphics.Color(255, 255, 51)       
+        pos = 20
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            summary = event['summary']
+            print(start, summary)
+            graphics.DrawText(matrix, smallFont, 0, pos, color, summary)
+            pos+=6
+
+
+    except Exception as e:
+        print(e)
 
 
 weatherJob()
+calendarJob()
 schedule.every(5).minutes.do(weatherJob)
+schedule.every(1).minutes.do(calendarJob)
 
 while True:
     schedule.run_pending()

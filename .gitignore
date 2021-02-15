@@ -29,4 +29,6 @@ rpi-fb-matrix
 *.out
 *.app
 
-weather-data.json
+config.json
+credentials.json
+token.pickle
