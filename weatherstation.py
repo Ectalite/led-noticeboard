@@ -1,10 +1,11 @@
+#coding=utf-8
 from PIL import Image
 from PIL import ImageDraw
 import schedule
 import time
 import json
 import requests
-from rgbmatrix import RGBMatrix, RGBMatrixOptions
+from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
 # Enter Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
 location = '2750065' #Nijkerk, NL
@@ -22,6 +23,8 @@ options.parallel = 1
 options.hardware_mapping = 'adafruit-hat'
 options.panel_type = 'FM6126A'
 matrix = RGBMatrix(options = options)
+font = graphics.Font()
+font.LoadFont('fonts/5x7.bdf')
 
 def drawimage(path, x, y):
     image = Image.open(path).convert('RGB')
@@ -34,14 +37,13 @@ def job():
 
     # Pull fresh weather data
     try:
-        response = requests.get('http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&cnt=10&appid='+appid)
+        response = requests.get('http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&units=metric&cnt=10&appid='+appid)
 
         data = json.loads(response.text)
         main = data['main']
 
         #Get Current Conditions
         temp = main['temp']
-        temp = ((temp-273.15)*(1.8)+32)
         temp = int(round(temp))
 
         weather = data['weather']
@@ -52,43 +54,33 @@ def job():
 
         #Draw weather icon
         if Conditions == 900:
-            drawimage('weathericons/' + 'tornado' + '.png', 9, 1)
+            icon = 'tornado'
         elif Conditions == 901 or Conditions == 902:
-            drawimage('weathericons/' + 'hurricane' + '.png', 9, 1)
+            icon = 'hurricane'
         elif Conditions == 906 or Conditions == 611 or Conditions == 612:
-            drawimage('weathericons/' + 'hail' + '.png', 9, 1)
+            icon = 'hail'
         elif Conditions == 600 or Conditions == 601 or Conditions == 602:
-            drawimage('weathericons/' + 'snow' + '.png', 9, 1)
-        else: 
-            drawimage('weathericons/' + icon + '.png', 9, 1)
+            icon = 'snow'
+        
+        drawimage('weathericons/' + icon + '.png', 0, 0)
+        
 
         #Draw temperature
-        TempComponents = str(temp)
-        TempLength = len(TempComponents)
-
         # Sets Temperature Color
-        if temp <= 32:
-            TempColor = 'b'
-        elif temp > 90:
-            TempColor = 'r'
+        if temp >= 20:
+            tempColor = graphics.Color(255, 0, 0)
+        elif temp >= 15:
+            tempColor = graphics.Color(255, 128, 0)
+        elif temp >= 10:
+            tempColor = graphics.Color(255, 255, 0)
+        elif temp >= 5:
+            tempColor = graphics.Color(0, 255, 255)
         else:
-            TempColor = 'w'
+            tempColor = graphics.Color(0, 0, 255)
 
-        if TempLength == 1:
-            drawimage('numbericons/' + str(TempComponents[0]) + TempColor + '.png', 11, 16)
-            drawimage('numbericons/' + 'F' + TempColor + '.png', 17, 16)
-
-        if TempLength == 2:
-            drawimage('numbericons/' + str(TempComponents[0]) + TempColor + '.png', 7, 16)
-            drawimage('numbericons/' + str(TempComponents[1]) + TempColor + '.png', 13, 16)
-
-            drawimage('numbericons/' + 'F' + TempColor + '.png', 19, 16)
-
-        if TempLength == 3:
-            drawimage('numbericons/' + str(TempComponents[0]) + TempColor + '.png', 5, 16)
-            drawimage('numbericons/' + str(TempComponents[1]) + TempColor + '.png', 9, 16)
-            drawimage('numbericons/' + str(TempComponents[2]) + TempColor + '.png', 15, 16)
-            drawimage('numbericons/' + 'F' + TempColor + '.png', 21, 16)
+        tempFormatted = unicode(str(temp), 'utf-8') + unicode('°C', 'utf-8')
+        
+        graphics.DrawText(matrix, font, 17, 7, tempColor, tempFormatted)
 
         print('Current Temp: '+str(temp)+' Icon Code: '+str(icon))
 
