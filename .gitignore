@@ -28,3 +28,5 @@ rpi-fb-matrix
 *.exe
 *.out
 *.app
+
+weather-data.json

@@ -7,12 +7,13 @@ import json
 import requests
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
-# Enter Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
-location = '2750065' #Nijkerk, NL
-#location = '4954380' #Waltham, MA
-
+# Weather settings held in file weather-data.json
+# Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
 # Include app id generated when you make you account at: http://openweathermap.org/api
-appid = '26d71701f80249205ff46efa3570822f'
+with open('weather-data.json') as json_file:
+    data = json.load(json_file)
+    location = data['location']
+    appid = data ['appid']
 
 # Configuration for the matrix
 options = RGBMatrixOptions()
@@ -40,6 +41,7 @@ def job():
         response = requests.get('http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&units=metric&cnt=10&appid='+appid)
 
         data = json.loads(response.text)
+        print('Weather data: ' + str(data))
         main = data['main']
 
         #Get Current Conditions
