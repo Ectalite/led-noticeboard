@@ -6,6 +6,7 @@ import time
 import json
 import requests
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+import datetime
 
 # Weather settings held in file weather-data.json
 # Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
@@ -32,9 +33,9 @@ def drawimage(path, x, y):
     image.load()
     matrix.SetImage(image, x, y)
 
-def job():
+def weatherJob():
     # Clear matrix
-    matrix.Clear()
+    #matrix.Clear()
 
     # Pull fresh weather data
     try:
@@ -63,9 +64,8 @@ def job():
             icon = 'hail'
         elif Conditions == 600 or Conditions == 601 or Conditions == 602:
             icon = 'snow'
-        
-        drawimage('weathericons/' + icon + '.png', 0, 0)
-        
+
+        print('Current Temp: '+str(temp)+' Icon Code: '+str(icon))
 
         #Draw temperature
         # Sets Temperature Color
@@ -81,17 +81,52 @@ def job():
             tempColor = graphics.Color(0, 0, 255)
 
         tempFormatted = unicode(str(temp), 'utf-8') + unicode('°C', 'utf-8')
-        
+
+        drawimage('weathericons/' + icon + '.png', 0, 0)
+
+        # Clear current temp
+        image = Image.new('RGB', (24, 15))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 23, 14), fill=(0, 0, 0), outline=(0, 0, 0))
+        matrix.SetImage(image, 16, 0)
+
         graphics.DrawText(matrix, font, 17, 7, tempColor, tempFormatted)
 
-        print('Current Temp: '+str(temp)+' Icon Code: '+str(icon))
 
     except requests.exceptions.RequestException as e:
-        drawimage('weathericons/' + 'error' + '.png', 9, 1)
+        drawimage('weathericons/' + 'error' + '.png', 0, 0)
 
-job()
-schedule.every(5).minutes.do(job)
+
+def timeJob():
+    #try:
+        color = graphics.Color(255, 0, 255)
+
+        now = datetime.datetime.now()
+        onOff = (time.mktime(now.timetuple()) %2 == 0)
+
+        if onOff:
+            current_time = now.strftime("%H:%M")
+        else:
+            current_time = now.strftime("%H %M")
+
+        current_date = now.strftime("%a%d")
+
+        image = Image.new('RGB', (24, 15))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 23, 14), fill=(0, 0, 0), outline=(0, 0, 0))
+        matrix.SetImage(image, 40, 0)
+
+        graphics.DrawText(matrix, font, 40, 7, color, current_time)
+        graphics.DrawText(matrix, font, 40, 14, color, current_date)
+
+    #except Exception as e:
+     #   print(e)
+
+
+weatherJob()
+schedule.every(5).minutes.do(weatherJob)
 
 while True:
     schedule.run_pending()
+    timeJob()
     time.sleep(1)
