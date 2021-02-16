@@ -18,6 +18,8 @@ with open('config.json') as json_file:
     config = json.load(json_file)
     weather_config = config['weather']
     location = weather_config['location']
+    lat = weather_config['lat']
+    lon = weather_config['lon']
     appid = weather_config['appid']
     calendar_config = config['calendar']
     calendarId = calendar_config['calendarId']
@@ -50,30 +52,43 @@ def weatherJob():
 
     # Pull fresh weather data
     try:
-        response = requests.get('http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&units=metric&cnt=10&appid='+appid)
-
+        #weather_url = 'http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&units=metric&cnt=10&appid='+appid
+        weather_url = 'http://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&units=metric&exclude=minutely,daily,alerts&appid={appid}'.format(
+            lat=lat, lon=lon, appid=appid)
+        
+        response = requests.get(weather_url)
         data = json.loads(response.text)
         print('Weather data: ' + str(data))
-        main = data['main']
-
+        
+        #current = data['main']
+        current = data['current']
+        
         #Get Current Conditions
-        temp = main['temp']
+        temp = current['temp']
         temp = int(round(temp))
 
-        weather = data['weather']
+        #weather = data['weather']
+        weather = current['weather']
         weather = weather[0]
         icon = weather['icon']
-
-        Conditions = weather['id']
-
+        
+        conditions = weather['id']
+        
+        #Get rain forecast
+        forecastHour = data['hourly'][0];
+        rainProb = forecastHour['pop']
+        timestamp = forecastHour['dt']
+        dt_object = datetime.datetime.fromtimestamp(timestamp)
+        print('Forecast time: ' + str(dt_object))
+        
         #Draw weather icon
-        if Conditions == 900:
+        if conditions == 900:
             icon = 'tornado'
-        elif Conditions == 901 or Conditions == 902:
+        elif conditions == 901 or conditions == 902:
             icon = 'hurricane'
-        elif Conditions == 906 or Conditions == 611 or Conditions == 612:
+        elif conditions == 906 or conditions == 611 or conditions == 612:
             icon = 'hail'
-        elif Conditions == 600 or Conditions == 601 or Conditions == 602:
+        elif conditions == 600 or conditions == 601 or conditions == 602:
             icon = 'snow'
 
         print('Current Temp: '+str(temp)+' Icon Code: '+str(icon))
@@ -92,7 +107,8 @@ def weatherJob():
             tempColor = graphics.Color(0, 0, 255)
 
         tempFormatted = unicode(str(temp), 'utf-8') + unicode('°C', 'utf-8')
-
+        rainFormatted = str(int(rainProb*100)) + '%'
+        
         drawimage('weathericons/' + icon + '.png', 0, 0)
 
         # Clear current temp
@@ -102,7 +118,7 @@ def weatherJob():
         matrix.SetImage(image, 16, 0)
 
         graphics.DrawText(matrix, font, 17, 7, tempColor, tempFormatted)
-
+        graphics.DrawText(matrix, font, 17, 14, tempColor, rainFormatted)
 
     except requests.exceptions.RequestException as e:
         drawimage('weathericons/' + 'error' + '.png', 0, 0)
