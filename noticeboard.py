@@ -1,16 +1,18 @@
 #coding=utf-8
-from PIL import Image
-from PIL import ImageDraw
 import schedule
 import time
 import json
 import requests
-from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 import datetime
 import pickle
 import os.path
-from googleapiclient.discovery import build
 import sys
+import threading
+from PIL import Image
+from PIL import ImageDraw
+from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+from googleapiclient.discovery import build
+
 
 class Noticeboard(object):
     def process(self):
@@ -37,18 +39,19 @@ class Noticeboard(object):
 
         self.smallFont = graphics.Font()
         self.smallFont.LoadFont("fonts/tom-thumb.bdf")
-        
-        self.weatherJob(weather_config)
+
+        gif_lock = threading.Lock()
+        self.weatherJob(weather_config, gif_lock)
         self.calendarJob(calendar_config)
-        schedule.every(5).minutes.do(self.weatherJob, config=weather_config)
-        schedule.every(1).minutes.do(self.calendarJob, config=calendar_config)    
+        schedule.every(5).minutes.do(self.run_threaded, self.weatherJob, (weather_config, gif_lock))
+        schedule.every(1).minutes.do(self.run_threaded, self.calendarJob, (calendar_config,))
 
         try:
             print("Press CTRL-C to stop")
             while True:
                 schedule.run_pending()
                 self.timeJob()
-                self.weatherIconJob()
+                self.weatherIconJob(gif_lock)
                 time.sleep(0.1)
         except KeyboardInterrupt:
             print("Exiting\n")
@@ -60,7 +63,13 @@ class Noticeboard(object):
         image.load()
         self.matrix.SetImage(image, x, y)
 
-    def weatherJob(self, config):
+    def draw_blank_image(self, x, y, w, h):
+        image = Image.new('RGB', (w, h))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, w-1, h-1), fill=(0, 0, 0), outline=(0, 0, 0))
+        self.matrix.SetImage(image, x, y)
+
+    def weatherJob(self, config, gif_lock):
         # Clear matrix
         #matrix.Clear()
 
@@ -70,18 +79,18 @@ class Noticeboard(object):
             lat = config['lat']
             lon = config['lon']
             appid = config['appid']
-            
+
             #weather_url = 'http://api.openweathermap.org/data/2.5/weather?id='+location+'&mode=json&units=metric&cnt=10&appid='+appid
             weather_url = 'http://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&units=metric&exclude=minutely,daily,alerts&appid={appid}'.format(
                 lat=lat, lon=lon, appid=appid)
-            
+
             response = requests.get(weather_url)
             data = json.loads(response.text)
-            print('Weather data: ' + str(data))
-            
+            #print('Weather data: ' + str(data))
+
             #current = data['main']
             current = data['current']
-            
+
             #Get Current Conditions
             temp = current['temp']
             temp = int(round(temp))
@@ -90,16 +99,16 @@ class Noticeboard(object):
             weather = current['weather']
             weather = weather[0]
             icon = weather['icon']
-            
+
             conditions = weather['id']
-            
+
             #Get rain forecast
             forecastHour = data['hourly'][0];
             rainProb = forecastHour['pop']
             timestamp = forecastHour['dt']
             dt_object = datetime.datetime.fromtimestamp(timestamp)
             print('Forecast time: ' + str(dt_object))
-            
+
             #Draw weather icon
             if conditions == 900:
                 icon = 'tornado'
@@ -131,16 +140,14 @@ class Noticeboard(object):
             #self.drawimage('weathericons/' + icon + '.png', 0, 0)
             image_file = 'weathericons/' + icon + '.gif'
 
-            self.weather_image = Image.open(image_file)
-            self.weather_image_frame = 0
-            self.weather_image_max = self.weather_image.n_frames
-            print(self.weather_image_max)
+            with gif_lock:
+                self.weather_image = Image.open(image_file)
+                self.weather_image_frame = 0
+                self.weather_image_max = self.weather_image.n_frames
+                print('Weather image frame count'+str(self.weather_image_max))
 
             # Clear current temp
-            image = Image.new('RGB', (24, 15))
-            draw = ImageDraw.Draw(image)
-            draw.rectangle((0, 0, 23, 14), fill=(0, 0, 0), outline=(0, 0, 0))
-            self.matrix.SetImage(image, 16, 0)
+            self.draw_blank_image(16, 0, 24, 15)
 
             graphics.DrawText(self.matrix, self.font, 17, 7, tempColor, tempFormatted)
             graphics.DrawText(self.matrix, self.font, 17, 14, tempColor, rainFormatted)
@@ -149,12 +156,13 @@ class Noticeboard(object):
             self.drawimage('weathericons/' + 'error' + '.png', 0, 0)
 
 
-    def weatherIconJob(self):
-        self.weather_image.seek(self.weather_image_frame)
-        self.matrix.SetImage(self.weather_image.convert('RGB'))
-        self.weather_image_frame += 1
-        if self.weather_image_frame == self.weather_image_max:
-            self.weather_image_frame = 0
+    def weatherIconJob(self, gif_lock):
+        with gif_lock:
+            self.weather_image.seek(self.weather_image_frame)
+            self.matrix.SetImage(self.weather_image.convert('RGB'))
+            self.weather_image_frame += 1
+            if self.weather_image_frame == self.weather_image_max:
+                self.weather_image_frame = 0
 
 
     def timeJob(self):
@@ -171,21 +179,17 @@ class Noticeboard(object):
 
             current_date = now.strftime("%a%d")
 
-            image = Image.new('RGB', (24, 15))
-            draw = ImageDraw.Draw(image)
-            draw.rectangle((0, 0, 23, 14), fill=(0, 0, 0), outline=(0, 0, 0))
-            self.matrix.SetImage(image, 40, 0)
+            self.draw_blank_image(40, 0, 24, 15)
 
             graphics.DrawText(self.matrix, self.font, 40, 7, color, current_time)
             graphics.DrawText(self.matrix, self.font, 40, 14, color, current_date)
 
         #except Exception as e:
          #   print(e)
-         
+
 
     def calendarJob(self, config):
         try:
-            
             # If modifying these scopes, delete the file token.pickle.
             #SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
@@ -218,12 +222,9 @@ class Noticeboard(object):
                 print('No upcoming events found.')
 
             # Clear previous list
-            image = Image.new('RGB', (64, 17))
-            draw = ImageDraw.Draw(image)
-            draw.rectangle((0, 0, 63, 16), fill=(0, 0, 0), outline=(0, 0, 0))
-            self.matrix.SetImage(image, 0, 15)
+            self.draw_blank_image(0, 15, 64, 17)
 
-            color = graphics.Color(255, 255, 51)       
+            color = graphics.Color(255, 255, 51)
             pos = 20
             for event in events:
                 start = event['start'].get('dateTime', event['start'].get('date'))
@@ -235,6 +236,10 @@ class Noticeboard(object):
 
         except Exception as e:
             print(e)
+
+    def run_threaded(self, job_func, args):
+        job_thread = threading.Thread(target=job_func, args=args)
+        job_thread.start()
 
 
 # Main function
