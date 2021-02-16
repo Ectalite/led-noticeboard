@@ -48,7 +48,8 @@ class Noticeboard(object):
             while True:
                 schedule.run_pending()
                 self.timeJob()
-                time.sleep(1)
+                self.weatherIconJob()
+                time.sleep(0.1)
         except KeyboardInterrupt:
             print("Exiting\n")
             sys.exit(0)
@@ -126,8 +127,14 @@ class Noticeboard(object):
 
             tempFormatted = unicode(str(temp), 'utf-8') + unicode('°C', 'utf-8')
             rainFormatted = str(int(rainProb*100)) + '%'
-            
-            self.drawimage('weathericons/' + icon + '.png', 0, 0)
+
+            #self.drawimage('weathericons/' + icon + '.png', 0, 0)
+            image_file = 'weathericons/' + icon + '.gif'
+
+            self.weather_image = Image.open(image_file)
+            self.weather_image_frame = 0
+            self.weather_image_max = self.weather_image.n_frames
+            print(self.weather_image_max)
 
             # Clear current temp
             image = Image.new('RGB', (24, 15))
@@ -140,6 +147,14 @@ class Noticeboard(object):
 
         except requests.exceptions.RequestException as e:
             self.drawimage('weathericons/' + 'error' + '.png', 0, 0)
+
+
+    def weatherIconJob(self):
+        self.weather_image.seek(self.weather_image_frame)
+        self.matrix.SetImage(self.weather_image.convert('RGB'))
+        self.weather_image_frame += 1
+        if self.weather_image_frame == self.weather_image_max:
+            self.weather_image_frame = 0
 
 
     def timeJob(self):
