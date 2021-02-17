@@ -12,6 +12,8 @@ from PIL import Image
 from PIL import ImageDraw
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 
 
 class Noticeboard(object):
@@ -144,7 +146,7 @@ class Noticeboard(object):
                 self.weather_image = Image.open(image_file)
                 self.weather_image_frame = 0
                 self.weather_image_max = self.weather_image.n_frames
-                print('Weather image frame count'+str(self.weather_image_max))
+                print('Weather image frame count: '+str(self.weather_image_max))
 
             # Clear current temp
             self.draw_blank_image(16, 0, 24, 15)
@@ -191,7 +193,7 @@ class Noticeboard(object):
     def calendarJob(self, config):
         try:
             # If modifying these scopes, delete the file token.pickle.
-            #SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+            SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
             creds = None
             # The file token.pickle stores the user's access and refresh tokens, and is
@@ -202,7 +204,15 @@ class Noticeboard(object):
                     creds = pickle.load(token)
             # If there are no (valid) credentials available, let the user log in.
             if not creds or not creds.valid:
-                print('invalid creds. run the quickstart')
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        'credentials.json', SCOPES)
+                    creds = flow.run_local_server(port=0)
+                # Save the credentials for the next run
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
 
             service = build('calendar', 'v3', credentials=creds)
 
@@ -232,7 +242,6 @@ class Noticeboard(object):
                 print(start, summary)
                 graphics.DrawText(self.matrix, self.smallFont, 0, pos, color, summary)
                 pos+=6
-
 
         except Exception as e:
             print(e)
