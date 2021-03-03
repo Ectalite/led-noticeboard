@@ -32,3 +32,4 @@ rpi-fb-matrix
 config.json
 credentials.json
 token.pickle
+*.pyc
