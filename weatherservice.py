@@ -105,9 +105,13 @@ class WeatherService():
 
     def animate_icon(self):
         with self.gif_lock:
-            self.weather_image.seek(self.weather_image_frame)
-            self.matrix.SetImage(self.weather_image.convert('RGB'))
-            self.weather_image_frame += 1
-            if self.weather_image_frame == self.weather_image_max:
-                self.weather_image_frame = 0
+            try:
+                self.weather_image.seek(self.weather_image_frame)
+                self.matrix.SetImage(self.weather_image.convert('RGB'))
+                self.weather_image_frame += 1
+                if self.weather_image_frame == self.weather_image_max:
+                    self.weather_image_frame = 0
+            except AttributeError:
+                # catching error in case request hasn't completed and weather_image doesn't exist
+                True
 

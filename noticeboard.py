@@ -1,5 +1,5 @@
+import datetime
 import json
-import schedule
 import sys
 import threading
 import time
@@ -13,43 +13,41 @@ from calendarservice import CalendarService
 
 class Noticeboard(object):
     def process_scheduler(self):
-        self.start_time = '06:00'
-        self.stop_time = '22:00'
-        
-        try:
-            print("Press CTRL-C to stop")
-            self.process()
-            
-            scheduler1 = schedule.Scheduler()
-            scheduler1.every().day.at(self.start_time).do(self.process)
-            
-            while True:
-                #now = datetime.datetime.now()
-                #today = datetime.date.today()
-                #tomorrow_start = today + datetime.delta(days=1, hours=14, minutes=21)
-                
-                n = scheduler1.idle_seconds                
-                print('Seconds till next start: '+str(n))
-                if n > 0:
-                    # sleep exactly the right amount
-                    time.sleep(n)
-                print('Run pending...')
-                scheduler1.run_pending()
-        except KeyboardInterrupt:
-            print("Exiting\n")
-            sys.exit(0)
+        start_time = datetime.time(06, 00)
+        stop_time = datetime.time(19, 00)
 
-    def process(self):
-        print('Process started')
-        #schedule.clear('start_process') # schedule is singleton. We don't want it re-running this process in the loop below
         # Weather settings held in file config.json
         # Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
         # Include app id generated when you make you account at: http://openweathermap.org/api
         with open('config.json') as json_file:
             config = json.load(json_file)
-            weather_config = config['weather']
-            calendar_config = config['calendar']
+            self.weather_config = config['weather']
+            self.calendar_config = config['calendar']
+        
+        try:
+            print("Press CTRL-C to stop")
+            
+            while True:
+                time_of_day = datetime.datetime.now().time()
+                sleep_seconds = 300
 
+                if time_of_day < start_time:
+                    #sleep_seconds = (start_time - time_of_day).seconds
+                    print("Waiting to start")
+                elif time_of_day < stop_time:
+                    print("Starting process")
+                    self.process(stop_time)
+                elif time_of_day >= stop_time:
+                    #sleep_seconds = (datetime.time(23, 59, 59) - time_of_day + start_time_day).seconds
+                    print("Waiting to start the next day")
+
+                time.sleep(sleep_seconds)
+                
+        except KeyboardInterrupt:
+            print("Exiting\n")
+            sys.exit(0)
+    
+    def matrix(self):
         # Configuration for the matrix
         options = RGBMatrixOptions()
         options.rows = 32
@@ -63,26 +61,33 @@ class Noticeboard(object):
         #options.scan_mode = 1
         #options.limit_refresh_rate_hz = 100
         matrix = RGBMatrix(options = options)
+        return matrix
 
+    def process(self, stop_time):
+        print('Process started')
+
+        matrix = self.matrix()
+        
         font = graphics.Font()
         font.LoadFont('fonts/5x7.bdf')
 
-        weather_service = WeatherService(weather_config, matrix, font)
+        weather_service = WeatherService(self.weather_config, matrix, font)
         datetime_service = DateTimeService(matrix, font)
-        calendar_service = CalendarService(calendar_config, matrix)
+        calendar_service = CalendarService(self.calendar_config, matrix)
 
-        weather_service.process()
-        calendar_service.process()
-        scheduler2 = schedule.Scheduler()
-        scheduler2.every(5).minutes.do(self.run_threaded, weather_service.process)
-        scheduler2.every(1).minutes.do(self.run_threaded, calendar_service.process)
-        self.active = True;
-        scheduler2.every().day.at(self.stop_time).do(self.stop_process)
+        weather_last_run = datetime.datetime(2000, 1, 1)
+        calendar_last_run = datetime.datetime(2000, 1, 1)
 
         try:
             print("Press CTRL-C to stop")
-            while self.active:
-                scheduler2.run_pending()
+            while True:
+                now = datetime.datetime.now()
+                if now.time() >= stop_time:
+                    break
+
+                weather_last_run = self.run_threaded(weather_service.process, now, weather_last_run, 5)
+                calendar_last_run = self.run_threaded(calendar_service.process, now, calendar_last_run, 1)
+
                 datetime_service.process()
                 weather_service.animate_icon()
                 time.sleep(0.1)
@@ -90,18 +95,15 @@ class Noticeboard(object):
             print("Exiting\n")
             sys.exit(0)
 
-        #matrix = None
-        #del matrix
-        #schedule.clear('service_process')
-        scheduler2.clear()  # The is necessary to release resources and stop the matrix running
+        print("Stopping process")
 
+    def run_threaded(self, job_func, now, last_run, minutes):
+        if (now - last_run).seconds >= minutes*60:
+            job_thread = threading.Thread(target=job_func)
+            job_thread.start()
+            return now
 
-    def run_threaded(self, job_func):
-        job_thread = threading.Thread(target=job_func)
-        job_thread.start()
-        
-    def stop_process(self):
-        self.active = False
+        return last_run
 
 
 # Main function
