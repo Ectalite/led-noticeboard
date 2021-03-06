@@ -11,13 +11,14 @@ from utils import Utils
 
 
 class CalendarService(object):
-    def __init__(self, config, matrix):
+    def __init__(self, config, matrix, max_events):
         self.matrix = matrix
         self.calendarId = config['calendarId']
         self.font = graphics.Font()
         self.font.LoadFont("fonts/tom-thumb.bdf")
         self.color = graphics.Color(255, 255, 51)
-        
+        self.max_events = max_events
+
     def process(self):
         try:
             # If modifying these scopes, delete the file token.pickle.
@@ -52,7 +53,7 @@ class CalendarService(object):
             print('To: '+toDate)
             calendarId = self.calendarId
             events_result = service.events().list(calendarId=calendarId,
-                                                timeMin=now, timeMax=toDate, maxResults=3, singleEvents=True,
+                                                timeMin=now, timeMax=toDate, maxResults=self.max_events, singleEvents=True,
                                                 orderBy='startTime').execute()
             events = events_result.get('items', [])
 
@@ -60,9 +61,10 @@ class CalendarService(object):
                 print('No upcoming events found.')
 
             # Clear previous list
-            Utils.draw_blank_image(self.matrix, 0, 15, 64, 17)
+            y_offset = 6 * (3-self.max_events)
+            Utils.draw_blank_image(self.matrix, 0, 15 + y_offset, 64, 17)
 
-            pos = 20
+            pos = 20 + y_offset
             for event in events:
                 start = event['start'].get('dateTime', event['start'].get('date'))
                 summary = event['summary']

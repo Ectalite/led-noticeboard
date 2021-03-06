@@ -9,12 +9,13 @@ from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 from weatherservice import WeatherService
 from datetimeservice import DateTimeService
 from calendarservice import CalendarService
-
+from moonservice import MoonService
 
 class Noticeboard(object):
     def process_scheduler(self):
-        start_time = datetime.time(06, 00)
-        stop_time = datetime.time(19, 00)
+        day_time = datetime.time(06, 00)
+        evening_time = datetime.time(16, 30)
+        night_time = datetime.time(20, 00)
 
         # Weather settings held in file config.json
         # Location code found at: http://bulk.openweathermap.org/sample/city.list.json.gz
@@ -23,30 +24,31 @@ class Noticeboard(object):
             config = json.load(json_file)
             self.weather_config = config['weather']
             self.calendar_config = config['calendar']
-        
+
         try:
             print("Press CTRL-C to stop")
-            
+
             while True:
                 time_of_day = datetime.datetime.now().time()
                 sleep_seconds = 300
 
-                if time_of_day < start_time:
+                if time_of_day < day_time:
                     #sleep_seconds = (start_time - time_of_day).seconds
                     print("Waiting to start")
-                elif time_of_day < stop_time:
-                    print("Starting process")
-                    self.process(stop_time)
-                elif time_of_day >= stop_time:
+                elif time_of_day < evening_time:
+                    self.day_process(evening_time)
+                elif time_of_day < night_time:
+                    self.evening_process(night_time)
+                elif time_of_day >= night_time:
                     #sleep_seconds = (datetime.time(23, 59, 59) - time_of_day + start_time_day).seconds
                     print("Waiting to start the next day")
 
                 time.sleep(sleep_seconds)
-                
+
         except KeyboardInterrupt:
             print("Exiting\n")
             sys.exit(0)
-    
+
     def matrix(self):
         # Configuration for the matrix
         options = RGBMatrixOptions()
@@ -63,17 +65,17 @@ class Noticeboard(object):
         matrix = RGBMatrix(options = options)
         return matrix
 
-    def process(self, stop_time):
-        print('Process started')
+    def day_process(self, stop_time):
+        print('Day process started')
 
         matrix = self.matrix()
-        
+
         font = graphics.Font()
         font.LoadFont('fonts/5x7.bdf')
 
         weather_service = WeatherService(self.weather_config, matrix, font)
         datetime_service = DateTimeService(matrix, font)
-        calendar_service = CalendarService(self.calendar_config, matrix)
+        calendar_service = CalendarService(self.calendar_config, matrix, 3)
 
         weather_last_run = datetime.datetime(2000, 1, 1)
         calendar_last_run = datetime.datetime(2000, 1, 1)
@@ -95,7 +97,43 @@ class Noticeboard(object):
             print("Exiting\n")
             sys.exit(0)
 
-        print("Stopping process")
+        print("Day process stopped")
+
+    def evening_process(self, stop_time):
+        print('Evening process started')
+
+        matrix = self.matrix()
+
+        font = graphics.Font()
+        font.LoadFont('fonts/5x7.bdf')
+
+        moon_service = MoonService(matrix, font)
+        datetime_service = DateTimeService(matrix, font)
+        calendar_service = CalendarService(self.calendar_config, matrix, 1)
+
+        calendar_last_run = datetime.datetime(2000, 1, 1)
+
+        moon_service.process()
+
+        try:
+            print("Press CTRL-C to stop")
+            while True:
+                now = datetime.datetime.now()
+                if now.time() >= stop_time:
+                    break
+                
+                moon_service.animate_stars()
+                moon_service.render()
+                calendar_last_run = self.run_threaded(calendar_service.process, now, calendar_last_run, 5)
+                datetime_service.process()
+                
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("Exiting\n")
+            sys.exit(0)
+
+        print("Evening process stopped")
+
 
     def run_threaded(self, job_func, now, last_run, minutes):
         if (now - last_run).seconds >= minutes*60:
