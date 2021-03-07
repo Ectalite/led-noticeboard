@@ -5,12 +5,11 @@ from utils import Utils
 
 
 class DateTimeService(object):
-    def __init__(self, matrix, font):
-        self.matrix = matrix
+    def __init__(self, font):
         self.font = font
         self.color = graphics.Color(255, 0, 255)
 
-    def process(self):
+    def process(self, matrix):
         #try:
             now = datetime.datetime.now()
             onOff = (time.mktime(now.timetuple()) %2 == 0)
@@ -22,10 +21,10 @@ class DateTimeService(object):
 
             current_date = now.strftime("%a%d")
 
-            Utils.draw_blank_image(self.matrix, 40, 0, 24, 8)  # Only clear time portion
+            Utils.draw_blank_image(matrix, 40, 0, 24, 8)  # Only clear time portion
 
-            graphics.DrawText(self.matrix, self.font, 40, 7, self.color, current_time)
-            graphics.DrawText(self.matrix, self.font, 40, 14, self.color, current_date)
+            graphics.DrawText(matrix, self.font, 40, 7, self.color, current_time)
+            graphics.DrawText(matrix, self.font, 40, 14, self.color, current_date)
 
         #except Exception as e:
          #   print(e)

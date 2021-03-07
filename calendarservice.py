@@ -1,6 +1,7 @@
 import datetime
 import os.path
 import pickle
+import threading
 
 from rgbmatrix import graphics
 from googleapiclient.discovery import build
@@ -9,18 +10,27 @@ from google.auth.transport.requests import Request
 
 from utils import Utils
 
-
 class CalendarService(object):
-    def __init__(self, config, matrix, max_events):
-        self.matrix = matrix
+    def __init__(self, config):
         self.calendarId = config['calendarId']
         self.font = graphics.Font()
         self.font.LoadFont("fonts/tom-thumb.bdf")
         self.color = graphics.Color(255, 255, 51)
-        self.max_events = max_events
+        self.last_run = datetime.datetime(2000, 1, 1)
 
-    def process(self):
+    def process(self, matrix, interval_minutes, max_events):
+        now = datetime.datetime.now()
+        if (now - self.last_run).seconds >= interval_minutes*60:
+            self.last_run = now
+            job_thread = threading.Thread(target=self.update, args=(matrix,max_events))
+            job_thread.start()
+
+    def update(self, matrix, max_events):
         try:
+            now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+            toDate = (datetime.date.today() + datetime.timedelta(days=1)).isoformat() + 'T00:00:00Z'
+            print('Getting upcoming events, from {0}, to {1}'.format(now, toDate))
+
             # If modifying these scopes, delete the file token.pickle.
             SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
@@ -46,14 +56,9 @@ class CalendarService(object):
             service = build('calendar', 'v3', credentials=creds)
 
             # Call the Calendar API
-            now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-            toDate = (datetime.date.today() + datetime.timedelta(days=1)).isoformat() + 'T00:00:00Z'
-            print('Getting the upcoming events')
-            print('From: '+now)
-            print('To: '+toDate)
             calendarId = self.calendarId
             events_result = service.events().list(calendarId=calendarId,
-                                                timeMin=now, timeMax=toDate, maxResults=self.max_events, singleEvents=True,
+                                                timeMin=now, timeMax=toDate, maxResults=max_events, singleEvents=True,
                                                 orderBy='startTime').execute()
             events = events_result.get('items', [])
 
@@ -61,16 +66,17 @@ class CalendarService(object):
                 print('No upcoming events found.')
 
             # Clear previous list
-            y_offset = 6 * (3-self.max_events)
-            Utils.draw_blank_image(self.matrix, 0, 15 + y_offset, 64, 17)
+            y_offset = 6 * (3-max_events)
+            Utils.draw_blank_image(matrix, 0, 15 + y_offset, 64, 17)
 
             pos = 20 + y_offset
             for event in events:
                 start = event['start'].get('dateTime', event['start'].get('date'))
                 summary = event['summary']
                 print(start, summary)
-                graphics.DrawText(self.matrix, self.font, 0, pos, self.color, summary)
+                graphics.DrawText(matrix, self.font, 0, pos, self.color, summary)
                 pos+=6
 
         except Exception as e:
             print(e)
+
