@@ -29,7 +29,7 @@ class CalendarService(object):
         try:
             now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
             toDate = (datetime.date.today() + datetime.timedelta(days=1)).isoformat() + 'T00:00:00Z'
-            print('Getting upcoming events, from {0}, to {1}'.format(now, toDate))
+            print('Getting events: {0} to {1}'.format(now, toDate))
 
             # If modifying these scopes, delete the file token.pickle.
             SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']

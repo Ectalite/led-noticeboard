@@ -21,7 +21,7 @@ class DateTimeService(object):
 
             current_date = now.strftime("%a%d")
 
-            Utils.draw_blank_image(matrix, 40, 0, 24, 8)  # Only clear time portion
+            Utils.draw_blank_image(matrix, 40, 0, 24, 15)
 
             graphics.DrawText(matrix, self.font, 40, 7, self.color, current_time)
             graphics.DrawText(matrix, self.font, 40, 14, self.color, current_date)

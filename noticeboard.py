@@ -33,6 +33,7 @@ class Noticeboard(object):
         calendar_service = CalendarService(calendar_config)
         moon_service = MoonService(font)
         matrix = None
+        day_mode = True
 
         try:
             print("Press CTRL-C to stop")
@@ -61,9 +62,11 @@ class Noticeboard(object):
                 if time_of_day < evening_time:
                     weather_service.process(matrix, 5)
                     calendar_service.process(matrix, 1, 3)
+                    day_mode = True
                 elif time_of_day < night_time:
-                    moon_service.process(matrix)
+                    moon_service.process(matrix, day_mode)
                     calendar_service.process(matrix, 5, 1)
+                    day_mode = False
 
                 datetime_service.process(matrix)
                 time.sleep(0.1)

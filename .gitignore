@@ -33,3 +33,5 @@ config.json
 credentials.json
 token.pickle
 *.pyc
+*.save
+*.save.*
