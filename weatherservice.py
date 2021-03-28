@@ -60,7 +60,7 @@ class WeatherService():
             conditions = weather['id']
 
             #Get rain forecast
-            forecastHour = data['hourly'][0];
+            forecastHour = data['hourly'][1];
             rainProb = forecastHour['pop']
             timestamp = forecastHour['dt']
             dt_object = datetime.datetime.fromtimestamp(timestamp)
