@@ -67,6 +67,9 @@ class CalendarService(object):
 
             # Clear previous list
             y_offset = 6 * (3-max_events)
+            if max_events < 3:
+                y_offset -= 1
+
             Utils.draw_blank_image(matrix, 0, 15 + y_offset, 64, 17)
 
             pos = 20 + y_offset
