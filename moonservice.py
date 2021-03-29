@@ -3,7 +3,6 @@ import decimal
 import random
 from rgbmatrix import graphics
 import moonphase
-from utils import Utils
 
 class MoonService():
     def __init__(self, font):
@@ -23,7 +22,7 @@ class MoonService():
         print("Moon phase "+str(pos))
         self.phase = moonphase.phase_short(pos)
 
-        width, height = 38, 27
+        width, height = 38, 26
         a, b = 18, 12
         r = 12.5
         d = decimal.Decimal(r*2)
@@ -34,7 +33,7 @@ class MoonService():
             diff = (d*2) * (1 - pos)
 
         self.sky = []
-        Utils.draw_blank_image(matrix, 0, 0, width, height)
+        matrix.Clear()
 
         for y in range(height):
             for x in range(width):
