@@ -14,7 +14,7 @@ from moonservice import MoonService
 class Noticeboard(object):
     def process(self):
         day_time = datetime.time(06, 00)
-        evening_time = datetime.time(16, 30)
+        evening_time = datetime.time(17, 30)
         night_time = datetime.time(20, 00)
 
         # Weather settings held in file config.json
