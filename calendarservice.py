@@ -77,7 +77,7 @@ class CalendarService(object):
                 start = event['start'].get('dateTime', event['start'].get('date'))
                 summary = event['summary']
                 print(start, summary)
-                graphics.DrawText(matrix, self.font, 0, pos, self.color, summary)
+                graphics.DrawText(matrix, self.font, 1, pos, self.color, summary)
                 pos+=6
 
         except Exception as e:
