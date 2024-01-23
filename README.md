@@ -8,18 +8,20 @@ Beautiful LED Matrix to display the weather! Powered by the Raspberry Pi and Ada
   1. Raspberry Pi with internet connection
   2. Adafruit RGB Matrix Hat
   3. LED Matrix
-  4. Follow setup instructions here: https://learn.adafruit.com/adafruit-rgb-matrix-plus-real-time-clock-hat-for-raspberry-pi
 
 ### Software
   1. Sign up for API key at http://openweathermap.org/api
   2. Clone this repo to RPi and navigate to the directory
-  3. Install required Python packages
+  3. Install [rpi-rgb-led-matrix python bindings](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/bindings/python/README.md)
+  4. Install required Python packages
   ```
-  $ sudo apt-get install python-dev python-imaging
-  $ pip install schedule
+  $ sudo apt-get install python3-dev
+  $ python3 -m venv venv
+  $ source venv/bin/activate
+  $ pip install google-api-python-client pillow google_auth_oauthlib
   ```
-  3. Edit `weatherstation.py` and enter your location and API key
-  4. Run `weatherstation.py` with `$ python weatherstation.py &`
+  5. Edit `config.json` and enter your location and API key
+  6. Run the Weather Station with `$ python3 noticeboard.py &`
 
 ### Author
 * **Joe Samela** - *Initial work* - [josephsamela.github.io](https://josephsamela.github.io/)
