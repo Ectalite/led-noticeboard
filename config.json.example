@@ -1,0 +1,10 @@
+{
+	"weather":{
+		"lat":"",
+        	"lon":"",
+        	"appid":""
+	},
+	"calendar":{
+		"calendarId":""
+	}	
+}

@@ -90,7 +90,7 @@ class WeatherService():
             else:
                 tempColor = graphics.Color(0, 0, 255)
 
-            tempFormatted = unicode(str(temp), 'utf-8') + unicode('°C', 'utf-8')
+            tempFormatted = str(temp) + "°C"
             rainFormatted = str(int(rainProb*100)) + '%'
 
             image_file = 'weathericons/' + icon + '.gif'

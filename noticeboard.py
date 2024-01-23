@@ -13,7 +13,7 @@ from moonservice import MoonService
 
 class Noticeboard(object):
     def process(self):
-        day_time = datetime.time(06, 00)
+        day_time = datetime.time(6, 00)
         evening_time = datetime.time(17, 30)
         night_time = datetime.time(20, 00)
 

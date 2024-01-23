@@ -7,7 +7,7 @@ from utils import Utils
 class DateTimeService(object):
     def __init__(self, font):
         self.font = font
-        self.color = graphics.Color(255, 0, 255)
+        self.color = graphics.Color(255, 255, 255)
 
     def process(self, matrix):
         #try:

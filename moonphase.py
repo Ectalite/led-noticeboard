@@ -51,7 +51,7 @@ def main():
    phasename = phase(pos)
 
    roundedpos = round(float(pos), 3)
-   print "%s (%s)" % (phasename, roundedpos)
+   print("%s %s", phasename, roundedpos)
 
 if __name__=="__main__": 
    main()
